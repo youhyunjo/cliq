@@ -150,6 +150,18 @@ class Config(configparser.ConfigParser):
             self.__update_global_config_file('add_section', section)
             self.__update_global_config_file('set', section, option, value)
         
+    def unset_local(self, section, option, value):
+        try:
+            self.__update_local_config_file('remove_option', section, option)
+        except configparser.NoSectionError:
+            pass
+        
+    def unset_global(self, section, option, value):
+        try:
+            self.__update_global_config_file('remove_option', section, option)
+        except configparser.NoSectionError:
+            pass
+        
     def __update_local_config_file(self, func: str, *args):
         self.__update_config_file(self.finder.local_config_filename, func, *args)
         
