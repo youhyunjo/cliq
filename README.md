@@ -110,6 +110,59 @@ $ myapp please sum 1 2 3 4 5
 15.0
 ```
 
+## Library
+
+Create a project and add modules:
+
+```
+$ cliq create project mylib
+$ pip install -e ./mylib
+$ echo 'def mean(*x): return sum(x)/len(x)' > mylib/mylib/math.py
+```
+
+It is a normal library:
+
+```python
+>>> import mylib.math
+>>> mylib.math.mean(1, 2, 3, 4, 5)
+3.0
+```
+
+Add commands. For example,
+
+```
+$ cliq create command mylib/mylib/main/command/mean.py
+```
+
+```python
+import sys
+from cliq.main.command import SimpleCommand
+import mylib.math
+
+def init(app):
+    return Command(app)
+
+class Command(SimpleCommand):
+    def __init__(self, app = None, name = __name__):
+        super().__init__(app, name)
+
+        self.parser.add_argument('x', type=float, nargs='+')
+
+    def run(self, argv):
+        args = self.parser.parse_args(argv)
+
+        # implement command line functionalities
+        print(mylib.math.mean(*args.x))
+ 
+```
+
+Run the command:
+
+```
+$ mylib mean 1 2 3 4
+2.5
+```
+
 
 
 
