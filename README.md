@@ -75,20 +75,46 @@ $ cd ./myapp/myapp/main/command
 $ rm help.py init.py config.py
 ```
 
-
-
-
-
-
-## Tutorials
-### Commands
+## Commands
 
 - A command is standalone and complete by itself. 
 - You can run it as an independent script. 
 - Just copy a command script into your project.
 - There is nothing to be configured.
 
-#### Simple command
+Try toy sample commands:
+
+```
+$ cliq say hello
+hello
+$ cliq please say hello
+hello
+$ cliq please sum 1 2 3 4 5
+15.0
+```
+
+Download a command script file:
+
+```
+$ wget https://raw.githubusercontent.com/youhyunjo/cliq/main/cliq/main/command/please.py
+$ python please.py sum 1 2 3 4 5
+15.0
+```
+
+Add it into your project:
+
+
+```
+$ mv please.py ./myapp/myapp/main/command/
+$ myapp please sum 1 2 3 4 5
+15.0
+```
+
+
+
+
+## Tutorials
+### Simple command
 
 Generate a simple command template script file:
 
@@ -123,7 +149,7 @@ hello
 ```
 
 
-#### Complex command with nested subcommands
+### Complex command with nested subcommands
 
 Create a command script file with the subcommands option:
 
