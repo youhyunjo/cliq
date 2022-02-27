@@ -46,21 +46,7 @@ Edit your command:
 - Add arguments to the `self.parser`
 - Write the `run` method
 
-```
-"""do: 
-"""
-
-_setup_ = {
-    'version' : '0.0.0',
-    'description' : '',
-}
-
-import sys
-from cliq.main.command import SimpleCommand
-
-def init(app):
-    return Command(app)
-
+```python
 class Command(SimpleCommand):
     def __init__(self, app = None, name = __name__):
         super().__init__(app, name)
@@ -80,16 +66,6 @@ class Command(SimpleCommand):
         # implement command line functionalities
         print(args)
  
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-
-    command = Command()
-    command.run(argv)
-
-if __name__ == '__main__' :
-    main()
-
 ```
 
 Remove `help`, `init`, `config` commands if you don't need them:
@@ -99,14 +75,20 @@ $ cd ./myapp/myapp/main/command
 $ rm help.py init.py config.py
 ```
 
-## Commands
+
+
+
+
+
+## Tutorials
+### Commands
 
 - A command is standalone and complete by itself. 
 - You can run it as an independent script. 
 - Just copy a command script into your project.
 - There is nothing to be configured.
 
-### Simple command
+#### Simple command
 
 Generate a simple command template script file:
 
@@ -120,23 +102,10 @@ options:
 ```
 
 Add arguments to `self.parser` and implement `run` method:
-```
-""" say: a toy simple command
-"""
 
-_setup_ = {
-    'version' : '0.1.0',
-    'description' : 'a toy simple command'
-}
-
-import sys
-from cliq.main.command import SimpleCommand
-
-def init(app):
-    return SayCommand(app)
-
-class SayCommand(SimpleCommand):
-    def __init__(self, app = None, name = 'say'):
+```python
+class Command(SimpleCommand):
+    def __init__(self, app = None, name = __name__):
         super().__init__(app, name)
         
         self.parser.add_argument('something', type=str, help='something')
@@ -144,16 +113,6 @@ class SayCommand(SimpleCommand):
     def run(self, argv):
         args = self.parser.parse_args(argv)
         print(args.something)
- 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-
-    command = SayCommand()
-    command.run(argv)
-
-if __name__ == '__main__' :
-    main()
 ```
 
 Use it:
@@ -164,14 +123,7 @@ hello
 ```
 
 
-### Complex command with nested subcommands
-
-
-
-
-## Tutorials
-
-### Nested commands
+#### Complex command with nested subcommands
 
 Create a command script file with the subcommands option:
 
