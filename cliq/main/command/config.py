@@ -2,7 +2,7 @@
 """
 
 _setup_ = {
-    'version' : '0.0.1',
+    'version' : '0.8.0',
     'description' : 'Get and set local (workspace) or global (user) options'
 }
 

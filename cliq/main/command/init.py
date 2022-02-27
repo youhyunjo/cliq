@@ -2,7 +2,7 @@
 """
 
 _setup_ = {
-    'version' : '0.0.1',
+    'version' : '0.9.0',
     'description' : 'Create an empty cliq workspace'
 }
 
