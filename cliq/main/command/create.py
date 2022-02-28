@@ -43,6 +43,7 @@ import cliq.templates.command
 import cliq.templates.project
 import cliq.templates.library
 import cliq.templates.module
+import cliq.sample_commands
 
 def init(app):
     return Command(app)
@@ -51,11 +52,19 @@ class Command(ComplexCommand):
     def __init__(self, app = None, name = 'create'):
         super().__init__(app, name, epilog = __epilog__)
 
+        #
+        # project
+        #
         project_parser = self.add_parser('project', help='create a project')
+        #project_parser.add_argument('--standalone', action='store_true', help='standalone project')
+        #project_parser.add_argument('-i', '--interactive', action='store_true',
+        #                            help='interactive')
         project_parser.add_argument('path', type=str, help='project path')
-        #project_parser.add_argument('--standalone', action='store_true', help='standalone')
+        project_parser.add_argument('--name', type=str, help='library name. if not specified, project name')
         project_parser.add_argument('--cli', '--with-cli', type=str, 
                                     help='a list of command line interface modules separate by commas')
+        project_parser.add_argument('--sample', '--with-sample-commands', action='store_true',
+                                    help='include sample commands')
 
         project_parser.add_argument('--description', type=str, help='description in setup.py')
         project_parser.add_argument('--keywords', type=str, help='keywords in setup.py')
@@ -66,10 +75,16 @@ class Command(ComplexCommand):
         
         project_parser.set_defaults(func='project')
 
+        #
+        # module
+        #
         module_parser = self.add_parser('module', help='add a cli module')
         module_parser.add_argument('path', help='module path')
         module_parser.set_defaults(func='module')
 
+        #
+        # command
+        #
         command_parser = self.add_parser('command', help='create a command')
         command_parser.add_argument('filename', type=str, help='a command script filename')
         command_parser.add_argument('--sub', '--subcommands', '--with-subcommands',
@@ -80,6 +95,42 @@ class Command(ComplexCommand):
         command_parser.set_defaults(func='command')
 
     def project(self, args):
+        # paths
+        project_path = pathlib.Path(args.path)
+        project_name = project_path.name
+        library_name = project_name if args.name is None else args.name
+        lib_path = project_path / library_name 
+
+        # make project directory and create commandl line modules
+        # if there are requested multiple command line modules,
+        #    create <project/library> (the top-level package directory)
+        #    and create command line modules <project/library/cli/main/command>
+        #        for each cli in cli_names
+        # else
+        #    create <project/library/main/command>
+        try:
+            project_path.mkdir(parents=True)
+        except FileExistsError:
+            sys.exit("fatal: destination path '{}' already exists".format(project_path))
+        
+        if args.cli is None:
+            cli_names = [library_name]
+            self.__create_library(lib_path)
+            self.__create_module(lib_path)
+            if args.sample: self.__copy_sample_commands(lib_path)
+        else:
+            if args.sample :
+                print('warning: --with-sample-commands option is ignored. No sample commands for a project with mulitple cli modules.')
+            cli_names = args.cli.split(',')
+            self.__create_library(lib_path)
+            for modname in cli_names:
+                mod_path = lib_path / modname
+                self.__create_module(mod_path)
+
+        #
+        # generate project files: setup.cfg setup.py README.md
+        #
+        
         # project info
         description = args.description if args.description is not None else ''
         keywords = args.keywords if args.keywords is not None else ''
@@ -87,30 +138,6 @@ class Command(ComplexCommand):
         author_email = args.email if args.email is not None else ''
         url = args.url if args.url is not None else ''
         license = args.license if args.license is not None else ''
-
-
-        # paths
-        project_path = pathlib.Path(args.path)
-        lib_path = project_path / project_path.name
-        project_name = lib_path.stem
-
-        # make project directory and create commandl line modules
-        # if there are requested multiple command line modules,
-        #    create <project/project> (the top-level package directory)
-        #    and create command line modules <project/project/cli/main/command>
-        #        for each cli in cli_names
-        # else
-        #    create <project/project/main/command>
-        if args.cli is None:
-            cli_names = [project_name]
-            self.__create_library(lib_path)
-            self.__create_module(lib_path)
-        else:
-            cli_names = args.cli.split(',')
-            self.__create_library(lib_path)
-            for modname in cli_names:
-                mod_path = lib_path / modname
-                self.__create_module(mod_path)
 
         # find templates directory
         templates_project_path = pathlib.Path(cliq.templates.project.__path__[0])
@@ -123,17 +150,17 @@ class Command(ComplexCommand):
 
         # generate setup.py
         if len(cli_names) == 1:
-            template = "'{cli}={project}.main:main'"
+            template = "'{cli}={library}.main:main'"
         else:
-            template = "'{cli}={project}.{cli}.main:main'"
+            template = "'{cli}={library}.{cli}.main:main'"
 
-        console_scripts = ','.join([template.format(project=project_name, cli=cli_name)
+        console_scripts = ','.join([template.format(library=library_name, cli=cli_name)
                                     for cli_name in cli_names])
 
         with open(templates_project_path / 'setup.py') as file:
             setup_py = file.read()
         with open(project_path / 'setup.py', 'w') as file:
-            file.write(setup_py.format(name=project_name,
+            file.write(setup_py.format(name=library_name,
                                        description=description,
                                        keywords=keywords,
                                        author=author,
@@ -173,20 +200,22 @@ class Command(ComplexCommand):
             sys.exit("fatal: '{}' already exists within destination path '{}'"
                      .format(command_path, module_path))
         
-        # path to cliq/templates/module
+        # get path to cliq/templates/module
+        # read cliq/templates/module/__init__.py
         templates_module_path = pathlib.Path(cliq.templates.module.__path__[0])
 
-        # generate __init__.py for module
         with open(templates_module_path / '__init__.py') as file:
             module_init_py = file.read()
 
+        # generate __init__.py for module
         with open(module_path / '__init__.py', 'w') as file:
             file.write(module_init_py.format(cliq_version=self.app.version, name=module_path.stem))
 
-        # generate __init__.py for main
+        # read cliq/templates/module/main/__init__.py
         with open(templates_module_path / 'main' / '__init__.py') as file:
             main_init_py = file.read()
 
+        # generate __init__.py for main
         with open(module_path / 'main' / '__init__.py', 'w') as file:
             file.write(main_init_py.format(cliq_version=self.app.version))
 
@@ -196,6 +225,22 @@ class Command(ComplexCommand):
             shutil.copy(src, dest_path)
 
 
+    def __copy_sample_commands(self, module_path):
+        # copy sample commands from cliq/sample_commands/ to <module>/main/command/
+        
+        # get path to cliq/sample_commands
+        sample_commands_path = pathlib.Path(cliq.sample_commands.__path__[0])
+
+        # get path to <module>/main/command
+        mod_command_path = module_path / 'main' / 'command'
+
+        # copy files
+        for filename in sample_commands_path.glob('*.py'): 
+            shutil.copy(sample_commands_path / filename, mod_command_path)
+        
+
+
+        
 
 
 

@@ -1,7 +1,7 @@
-# cliq: creating command line interface quickly
+# cliq: creating command line interfaces quickly in Python
 
-cliq is a lightweight framework for creating a command line application or
-writing a libary powered with command line tools. 
+`cliq` is a lightweight framework for creating a command line application or
+writing a libary powered with command line tools in Python.
 
 - supports nested subcommands
 - equiped with init and config system
@@ -39,14 +39,65 @@ $ mv do.py ./myapp/myapp/main/command/
 $ myapp do -h
 ```
 
-Edit your command:
+Remove `help`, `init`, `config` commands if you don't need them:
+
+```
+$ cd ./myapp/myapp/main/command
+$ rm help.py init.py config.py
+```
+
+## Commands
+
+- A command is standalone and complete by itself.
+- You can run it as an independent script. 
+- Just copy a command script into your project.
+- There is nothing to be configured.
+
+Try toy sample commands:
+
+```
+$ cliq say hello
+hello
+$ cliq please say hello
+hello
+$ cliq please sum 1 2 3 4 5
+15.0
+```
+
+Download a sample toy command script file:
+
+```
+$ wget https://raw.githubusercontent.com/youhyunjo/cliq/main/cliq/main/command/please.py
+$ python please.py sum 1 2 3 4 5
+15.0
+```
+
+Add it into your project:
+
+```
+$ mv please.py ./myapp/myapp/main/command/
+$ myapp please sum 1 2 3 4 5
+15.0
+```
+
+Write your command:
 
 - It's just an argparse.ArgumentParser
 - See <https://docs.python.org/3/library/argparse.html>
 - Add arguments to the `self.parser`
 - Write the `run` method
+- Your command runs standalone if you don't use the `app` variable.
+
+Create a command script:
+```
+$ cliq create command say.py 
+```
+
+Edit the script:
 
 ```python
+...
+
 class Command(SimpleCommand):
     def __init__(self, app = None, name = __name__):
         super().__init__(app, name)
@@ -66,48 +117,7 @@ class Command(SimpleCommand):
         # implement command line functionalities
         print(args)
  
-```
-
-Remove `help`, `init`, `config` commands if you don't need them:
-
-```
-$ cd ./myapp/myapp/main/command
-$ rm help.py init.py config.py
-```
-
-## Commands
-
-- A command is standalone and complete by itself. 
-- You can run it as an independent script. 
-- Just copy a command script into your project.
-- There is nothing to be configured.
-
-Try toy sample commands:
-
-```
-$ cliq say hello
-hello
-$ cliq please say hello
-hello
-$ cliq please sum 1 2 3 4 5
-15.0
-```
-
-Download a command script file:
-
-```
-$ wget https://raw.githubusercontent.com/youhyunjo/cliq/main/cliq/main/command/please.py
-$ python please.py sum 1 2 3 4 5
-15.0
-```
-
-Add it into your project:
-
-
-```
-$ mv please.py ./myapp/myapp/main/command/
-$ myapp please sum 1 2 3 4 5
-15.0
+...
 ```
 
 ## Library
