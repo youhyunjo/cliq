@@ -48,7 +48,7 @@ $ rm help.py init.py config.py
 
 ## Commands
 
-- A command is standalone and complete by itself.
+- A command is standalone and complete by itself if you don't need config.
 - You can run it as an independent script. 
 - Just copy a command script into your project.
 - There is nothing to be configured.
@@ -56,27 +56,13 @@ $ rm help.py init.py config.py
 Try toy sample commands:
 
 ```
-$ cliq say hello
+$ cliq create project myapp --sample
+$ pip install -e ./myapp 
+$ myapp say hello
 hello
 $ cliq please say hello
 hello
 $ cliq please sum 1 2 3 4 5
-15.0
-```
-
-Download a sample toy command script file:
-
-```
-$ wget https://raw.githubusercontent.com/youhyunjo/cliq/main/cliq/main/command/please.py
-$ python please.py sum 1 2 3 4 5
-15.0
-```
-
-Add it into your project:
-
-```
-$ mv please.py ./myapp/myapp/main/command/
-$ myapp please sum 1 2 3 4 5
 15.0
 ```
 
@@ -86,7 +72,8 @@ Write your command:
 - See <https://docs.python.org/3/library/argparse.html>
 - Add arguments to the `self.parser`
 - Write the `run` method
-- Your command runs standalone if you don't use the `app` variable.
+- Your command runs standalone if you don't use the `app` variable, which
+  allows your command to access config variables through `app.config`.
 
 Create a command script:
 ```
@@ -176,7 +163,66 @@ $ mylib mean 1 2 3 4
 
 
 
-## Tutorials
+## Tutorial
+### Concepts
+
+#### app, command and subcommand
+
+`cliq` supports nested command line interfaces to the depth 3: app, command, and subcommand.
+
+```
+$ cliq   create     project       ./myapp      --with-sample-commands
+$ pip    install                               -e ./myapp
+$ myapp  please     sum           1 2 3 
+$ myapp  say                      hello
+$ myapp                                        --help
+  <app>  <command>  <subcommand>  <arguments>  <options>
+```
+
+#### project, library and app
+
+`cliq` supports a library with multiple command line apps:
+
+```
+$ cliq create project ./myproj --name mylib --cli myapp,yourapp
+$ pip install -e ./mylib
+$ myapp -h
+$ yourapp -h
+```
+
+See the directory structure: project, library and apps.
+ 
+```
+$ tree myproj
+myproj
+├── README.md
+├── mylib
+│   ├── __init__.py
+│   ├── myapp
+│   │   ├── __init__.py
+│   │   └── main
+│   │       ├── __init__.py
+│   │       └── command
+│   │           ├── config.py
+│   │           ├── help.py
+│   │           └── init.py
+│   └── yourapp
+│       ├── __init__.py
+│       └── main
+│           ├── __init__.py
+│           └── command
+│               ├── config.py
+│               ├── help.py
+│               └── init.py
+├── setup.cfg
+└── setup.py
+
+7 directories, 14 files
+```
+
+
+
+
 ### Simple command
 
 Generate a simple command template script file:
@@ -259,8 +305,8 @@ Directory strucutre:
 holy/
 └── holy
     ├── graham
-    │   └── main
-    │       └── command
+    │   └── main
+    │       └── command
     └── terry
         └── main
             └── command
@@ -279,8 +325,42 @@ $ terry -h
 Add commands:
 
 ```
-$ cliq create command holy/holy/graham/main/command/play.py
-$ graham play -h
+$ cliq create command holy/holy/graham/main/command/say.py
+$ graham say -h
+
+$ cliq create command holy/holy/graham/main/command/play.py --sub role,instrument
+$ graham play role -h
+$ graham play instrument -h
 ```
 
+### Simple command line apps
 
+A command line module can run without predefined commands. Just put your
+command script named `__init__.py` into the path `<app>/main/command/`.
+
+```
+myapp/
+├── __init__.py
+└── main
+    ├── __init__.py
+    └── command
+        └── __init__.py
+```
+
+For example, you are going to write a image library with command line
+converters.
+
+```
+$ cliq create project myimglib --cli png2jpg,jpg2png
+$ pip install -e ./myimglib/
+$ cliq create command myimglib/myimglib/png2jpg/main/command/__init__.py
+$ png2jpg --help
+```
+
+Open `__init__.py` and write your code. `png2jpg` runs the code in
+`__init__.py`. Remove default command scripts if you don't need them.
+
+```
+$ rm myimglib/myimglib/png2jpg/main/command/*
+$ cliq create command myimglib/myimglib/png2jpg/main/command/__init__.py
+```

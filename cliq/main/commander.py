@@ -3,6 +3,7 @@
 # command center
 #
 import argparse
+import os
 import sys
 import pkgutil
 
@@ -14,36 +15,100 @@ class Commander:
         
         # parser
         self.parser = argparse.ArgumentParser(prog=self.app.name, add_help=False)
-        self.parser._positionals.title = 'commands'
-        self.parser.set_defaults(command='help')                     # <cliq>
+        self.parser._positionals.title = 'arguments'
         self.parser.add_argument('--help', action='store_true')      # <cliq> --help
         self.parser.add_argument('--version', action='store_true')   # <cliq> --version
         self.subparsers = self.parser.add_subparsers(title='commands', help='command help')
         
     def parse_args(self, argv):
 
-        # check argv and register commands
-        # <cliq> xxx ... => register <cliq>.main.command.xxx
+        # check argv and register commands. a command should be the first argument 
         #
+        # $ <myapp> <mycom> xxx ... => register <myapp>.main.command.<mycom>
+        #
+        # check if exists <module>/main/command/__init__.py
+        #          and __init__.py defines a cliq command.
+        pkg = __import__(self.app.__package__ + '.command', fromlist=[''])
+ 
+        if not hasattr(pkg, 'main') and not hasattr(pkg, 'init'):
+            self.parser.set_defaults(command='help')
+            return self.__parse_args(argv)
+        else:
+            self.__parse_args_with_main_command(pkg, argv)
+            sys.exit(0)
+
+    def __parse_args(self, argv):
+        # this method will process argv
+        # if not exists <module>/main/command/__init__.py
+        #    or __init__.py does not contains a proper cliq command
+        
         if len(argv) > 0 and not argv[0].startswith('-'):
             command = argv[0]
             try: 
                 mod = __import__(self.app.__package__ + '.command.' + command, fromlist=[''])
-                try:
+                if hasattr(mod._setup_, 'description'):
                     self.add_command_parser(command, help=mod._setup_['description'])
-                except AttributeError:
+                else:
                     self.add_command_parser(command)
             except ModuleNotFoundError:
                 sys.exit("{app}: '{com}' is not a {app} command. See '{app} --help'"
                          .format(app=self.app.name, com=command))
- 
+                   
+                
         # Use parse_known_args() to pass -h|--help option to the subparsers.
         # parse_args() takes -h|--help and immediately print help and exit the
         # program.
+
         args, argv = self.parser.parse_known_args(argv)   # pass -h|--help
-        
         return args
+
+    def __parse_args_with_main_command(self, main_command_pkg, argv):
+        # this method will process argv
+        # if exists <module>/main/command/__init__.py
+        #    and __init__.py contains a cliq command
+        #
+        # main_command_pkg is the <module>.main.command package
+        # main_command_pkg.init is the method defined in <module>/main/command/__init__.py
+        main_command = main_command_pkg.init(self.app)
+        
+        # change <ArgumentParser>.prog from 'myapp command' to 'myapp'
+        main_command.parser.prog = self.app.name  
+
+        # try to parse argv with self.parser
+        # argv may contain a proper command or --help or --version
+        if len(argv) > 0 and (not argv[0].startswith('-') or argv[0] == '--help' or argv[0] == '--version'):
+            try:
+               args = self.__parse_args(argv)
+            except:
+                args = None
+        else:
+            args = None
+                
             
+        if args and args.help:
+            self.__print_help_with_main_command(main_command)
+        elif args and args.version:
+            self.print_version()
+            sys.exit()
+        elif hasattr(args, 'command'):
+            mod = __import__(self.app.__package__ + '.command.' + args.command, fromlist=[''])
+            command = mod.init(self.app)
+            command.run(argv[1:]) # args.subargv
+            sys.exit(0)
+        else:
+            try:   
+                main_command.run(argv)
+            except:
+                #self.__print_help_with_main_command(main_command)
+                os._exit(0)
+
+    def __print_help_with_main_command(self, main_command):
+        main_command.parser.print_help()
+        print()
+        print('WITH PREDEFINED COMMANDS')
+        print('========================\n')
+        self.print_help()
+
     def run(self, argv):
 
         args = self.parse_args(argv)
