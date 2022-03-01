@@ -6,10 +6,27 @@ writing a libary powered with command line tools in Python.
 - supports nested subcommands
 - equiped with init and config system
 - supports multiple command line tools in a single library
-- only depends on the standard library
+- only depends on the standard library (`argparse` and `configparser`)
+- makes a command line app with independent command script files, which you
+  can run as standalone too.
+
+**Table of Contents**
+
+* [Quick Start](#quick-start)
+  * [Commands](#commands)
+  * [Library](#library)
+* [Guide](#guide)
+  * [Concepts](#concepts)
+    * [app, command and subcommand](#app-command-and-subcommand)
+    * [project, library and app](#project-library-and-app)
+  * [Simple command](#simple-command)
+  * [Complex command with nested subcommands](#complex-command-with-nested-subcommands)
+  * [init and config](#init-and-config)
+  * [Project with multiple command line modules](#project-with-multiple-command-line-modules)
+  * [Simple command line apps](#simple-command-line-apps)
 
 
-## Quick Start
+# Quick Start
 
 Install cliq:
 
@@ -25,33 +42,15 @@ $ pip install -e ./myapp
 $ myapp
 ```
 
-Create a new command:
-
+Create a new command into your project:
 ```
-$ cliq create command do.py
-$ python do.py -h
-```
-
-Add the command to your project:
-
-```
-$ mv do.py ./myapp/myapp/main/command/
+$ cliq create command ./myapp/myapp/main/command/do.py
 $ myapp do -h
 ```
 
-Remove `help`, `init`, `config` commands if you don't need them:
-
-```
-$ cd ./myapp/myapp/main/command
-$ rm help.py init.py config.py
-```
+And write what you want into the command file `do.py`.
 
 ## Commands
-
-- A command is standalone and complete by itself if you don't need config.
-- You can run it as an independent script. 
-- Just copy a command script into your project.
-- There is nothing to be configured.
 
 Try toy sample commands:
 
@@ -66,21 +65,23 @@ $ cliq please sum 1 2 3 4 5
 15.0
 ```
 
-Write your command:
+How to write your command:
 
-- It's just an argparse.ArgumentParser
+- It's just an `argparse.ArgumentParser`
 - See <https://docs.python.org/3/library/argparse.html>
 - Add arguments to the `self.parser`
 - Write the `run` method
 - Your command runs standalone if you don't use the `app` variable, which
   allows your command to access config variables through `app.config`.
 
-Create a command script:
+Create a command script and try to run it as standalone:
+
 ```
 $ cliq create command say.py 
+$ python say.py
 ```
 
-Edit the script:
+Open the script and `add_argument` and write `run` method:
 
 ```python
 ...
@@ -97,17 +98,36 @@ class Command(SimpleCommand):
         # self.parser.add_argument('input', type=str, help='input filename')
         # self.parser.add_argument('-v', '--verbose', action='store_true', help='verbose')
         # self.parser.add_argument('-o', '--output', type=str, help='output filename')
+		self.parser.add_argument('something', type=str)
 
     def run(self, argv):
         args = self.parser.parse_args(argv)
 
         # implement command line functionalities
-        print(args)
+        print(args.something)
  
 ...
 ```
 
+Now test your command:
+
+```
+$ python say.py hello
+hello
+```
+
+Add it into your project:
+
+```
+$ mv say.py myapp/myapp/main/command/
+$ myapp say hello
+hello
+```
+
 ## Library
+
+Do you plan to write a library and want to add some command line
+functionalities? 
 
 Create a project and add modules:
 
@@ -125,10 +145,10 @@ It is a normal library:
 3.0
 ```
 
-Add commands. For example,
+Create a command. For example,
 
 ```
-$ cliq create command mylib/mylib/main/command/mean.py
+$ cliq create command mean.py 
 ```
 
 ```python
@@ -156,17 +176,21 @@ class Command(SimpleCommand):
 Run the command:
 
 ```
-$ mylib mean 1 2 3 4
+$ python mean.py 1 2 3 4
 2.5
 ```
 
+Add it into your project:
+
+```
+mv mean.py mylib/mylib/main/command/
+```
 
 
+# Guide 
+## Concepts
 
-## Tutorial
-### Concepts
-
-#### app, command and subcommand
+### app, command and subcommand
 
 `cliq` supports nested command line interfaces to the depth 3: app, command, and subcommand.
 
@@ -179,7 +203,7 @@ $ myapp                                        --help
   <app>  <command>  <subcommand>  <arguments>  <options>
 ```
 
-#### project, library and app
+### project, library and app
 
 `cliq` supports a library with multiple command line apps:
 
@@ -223,7 +247,12 @@ myproj
 
 
 
-### Simple command
+## Simple command
+
+- A command is standalone and complete by itself if you don't need config.
+- You can run it as an independent script. 
+- Just copy a command script into your project.
+- There is nothing to be configured.
 
 Generate a simple command template script file:
 
@@ -258,7 +287,7 @@ hello
 ```
 
 
-### Complex command with nested subcommands
+## Complex command with nested subcommands
 
 Create a command script file with the subcommands option:
 
@@ -290,7 +319,20 @@ Edit it and put it into the command directory:
 $ mv do.py myapp/myapp/main/command/
 ```
 
-### Project with multiple command line modules
+## init and config
+
+Remove `init`, `config` commands if you don't need them:
+
+```
+$ cd ./myapp/myapp/main/command
+$ rm init.py config.py
+```
+
+
+
+
+
+## Project with multiple command line modules
 
 You can create a project with multiple command line interface modules.
 
@@ -333,7 +375,7 @@ $ graham play role -h
 $ graham play instrument -h
 ```
 
-### Simple command line apps
+## Simple command line apps
 
 A command line module can run without predefined commands. Just put your
 command script named `__init__.py` into the path `<app>/main/command/`.
