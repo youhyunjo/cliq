@@ -183,8 +183,12 @@ $ python mean.py 1 2 3 4
 Add it into your project:
 
 ```
-mv mean.py mylib/mylib/main/command/
+$ mv mean.py mylib/mylib/main/command/
+$ mylib mean 1 2 3 4
+2.5
 ```
+
+
 
 
 # Guide 
